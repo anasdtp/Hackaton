@@ -12,7 +12,7 @@ ISR(TIMER1_COMPA_vect) {
 void init_Timer() {
   TCCR1A = 0; // Clear TCCR1A register
   TCCR1B = (1 << WGM12) | (1 << CS11); // Set WGM12 for CTC mode, set prescaler to 8
-  OCR1A = 999; // Set the compare value to achieve 10 kHz frequency
+  OCR1A = 199; // Set the compare value to achieve 10 kHz frequency
   TIMSK1 = (1 << OCIE1A); // Enable timer compare interrupt
 
   sei(); // Enable global interrupts

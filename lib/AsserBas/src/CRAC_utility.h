@@ -48,7 +48,7 @@
     
 #define MOTDPIN 
 #define FACTEUR_DIVISION    1
-#define RESOLUTION_ROUE_CODEUSE 2048        
+#define RESOLUTION_ROUE_CODEUSE 1024        
 #define RECALAGE_TH 150     //150    -- 1000    -- 512
 #define EXPLOSION_TAUX 2500
     
@@ -99,9 +99,9 @@
 #define COEF_ROUE_GAUCHE  1 //1.00595 - 0.9992505621    Petit virage à droite à gauche  ancien : 1.0100 / 1.0055
 #define COEF_ROUE_DROITE -1 //BLANC
 #define TE_100US 25          //Temps d'echantionnage -> 25 x 100US = 2.5ms
-#define Vmax_coef 300.0           //  600       DANGER>>>>>>> chauffage micro
-#define Amax_coef 3000.0          // 6000       DANGER>>>>>>> chauffage micro
-#define Dmax_coef 3000.0          // 6000       DANGER>>>>>>> chauffage micro
+#define Vmax_coef 200.0           //  600       DANGER>>>>>>> chauffage micro
+#define Amax_coef 2000.0          // 6000       DANGER>>>>>>> chauffage micro
+#define Dmax_coef 2000.0          // 6000       DANGER>>>>>>> chauffage micro
 #define Ama_clo_coef 1500.0
 #define TE (TE_100US*0.0001) //soit 2.5ms
 void Encodeur_Init();
@@ -134,8 +134,8 @@ double Asser_Pos_MotD(double pcons_pos);
 /* DESCRIPTIF : Fonction appelee pour calculer la commande du moteur G                  */
 /****************************************************************************************/
 double Asser_Pos_MotG(double pcons_pos);
-double lireCodeurD();
-double lireCodeurG();
+int32_t lireCodeurD();
+int32_t lireCodeurG();
 void Asser_Init_D();
 void Asser_Init_G();
 void Asser_Init();
@@ -155,7 +155,7 @@ struct Ordre_deplacement
 {
     char type, enchainement;
     double vmax, amax, vinit, vfin, dmax;
-    short distance, recalage, val_recalage;
+    long distance, recalage, val_recalage;
     long angle;
     unsigned short x, y, theta;
     signed char sens;

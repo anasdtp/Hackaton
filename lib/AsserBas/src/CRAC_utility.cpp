@@ -231,9 +231,11 @@ double Asser_Pos_MotG(double pcons_pos)
 /* RETOUR : double                                                                      */
 /* DESCRIPTIF : permet de lire la valeur de l'encodeur droit                            */
 /****************************************************************************************/
-double lireCodeurD(void)
+int32_t lireCodeurD(void)
 {
-    return COEF_ROUE_DROITE * EncoderDroite.read();
+    static int32_t val = 0;
+    val += EncoderDroite.readAndReset();
+    return COEF_ROUE_DROITE * (val/10);
 }
 /****************************************************************************************/
 /* NOM : lectureErreur                                                                  */
@@ -255,9 +257,11 @@ void lectureErreur(void)
 /* RETOUR : double                                                                      */
 /* DESCRIPTIF : permet de lire la valeur de l'encodeur gauche                           */
 /****************************************************************************************/
-double lireCodeurG(void)
+int32_t lireCodeurG(void)
 {
-    return COEF_ROUE_GAUCHE * EncoderGauche.read();
+    static int32_t val = 0;
+    val += EncoderGauche.readAndReset();
+    return COEF_ROUE_GAUCHE * (val/10);
 }
 /****************************************************************************************/
 /* NOM : write_PWMD                                                                     */
@@ -299,7 +303,7 @@ void write_PWMD(double vitD)
 /****************************************************************************************/
 void write_PWMG(double vitG)
 {
-  
+    // Serial.print("vitG : "); Serial.print(vitG); Serial.print("Mvt : "); Serial.println(liste.type);
     if (vitG >= 0) // Mode Avancer
     {
 
@@ -371,13 +375,15 @@ void Moteur_G_INB_Write(bool set)
 }
 void PWM_D_WriteCompare(double vitD)
 {
-    int vit = (int)(vitD * 256. / 2048.);
-    analogWrite(PWM_MOTD, vitD);
+    int vit = (int)(vitD * 256. / 2048);
+    // Serial.print("vitD : "); Serial.println(vitD);
+    analogWrite(PWM_MOTD, vit);
 }
 void PWM_G_WriteCompare(double vitG)
 {
-    int vit = (int)(vitG * 256. / 2048.);
-    analogWrite(PWM_MOTG, vitG);
+    int vit = (int)(vitG * 256. / 2048);
+    Serial.print("vitG : "); Serial.println(vitG);
+    analogWrite(PWM_MOTG, vit);
 }
 /* [] END OF FILE */
 

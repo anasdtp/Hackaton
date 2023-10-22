@@ -128,7 +128,7 @@ void Mouvement_Elementaire(long pcons, short vmax, short amax, short dmax, char 
         
         break;
         
-     case ACCELERATION_TRAPEZE :    //Etat d'acceleration en profil trapeze
+    case ACCELERATION_TRAPEZE :    //Etat d'acceleration en profil trapeze
         cpt ++;
         
         //Incrementation de la consigne de vitesse par la valeur de l'acceleration
@@ -151,7 +151,7 @@ void Mouvement_Elementaire(long pcons, short vmax, short amax, short dmax, char 
             etat_automate_depl=ARRET_STOP;
 */        break;
         
-     case VITESSE_CONSTANTE_TRAPEZE :   //Etat de vitesse constante en profil trapeze
+    case VITESSE_CONSTANTE_TRAPEZE :   //Etat de vitesse constante en profil trapeze
         cpt ++; 
         //Incrementation de la consigne de position
         if (pcons>0) {
@@ -171,7 +171,7 @@ void Mouvement_Elementaire(long pcons, short vmax, short amax, short dmax, char 
 */
         break;
         
-     case DECELERATION_TRAPEZE :    //Etat de deceleration en profil trapeze
+    case DECELERATION_TRAPEZE :    //Etat de deceleration en profil trapeze
         cpt ++;
          
         //Incrementation de la consigne de vitesse par la valeur de l'acceleration
@@ -198,7 +198,7 @@ void Mouvement_Elementaire(long pcons, short vmax, short amax, short dmax, char 
             etat_automate_depl=ARRET_STOP;
 */        break;
         
-     case ARRET :       //Etat d'arret
+    case ARRET :       //Etat d'arret
         cpt ++;
         
         if(cpt >= 20)       //Condition pour sortir de l'etat arret
@@ -280,7 +280,7 @@ void Mouvement_Elementaire(long pcons, short vmax, short amax, short dmax, char 
     default:
     break;
     }
-    
+    // Serial.println(etat_automate_depl);
     if((etat_automate_depl != INITIALISATION)&&(etat_automate_depl != ARRET_STOP))
     {
         //Calcul des commandes
@@ -310,6 +310,8 @@ void Mouvement_Elementaire(long pcons, short vmax, short amax, short dmax, char 
             }
         }*/
         //Ecriture du PWM sur chaque modeur
+        // Serial.println(cmdG);
+        Serial.print("cmdG : "); Serial.println(cmdG);
         write_PWMG(cmdG);   
         write_PWMD(cmdD);
         
