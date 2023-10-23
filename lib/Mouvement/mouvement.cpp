@@ -311,7 +311,7 @@ void Mouvement_Elementaire(long pcons, short vmax, short amax, short dmax, char 
         }*/
         //Ecriture du PWM sur chaque modeur
         // Serial.println(cmdG);
-        Serial.print("cmdG : "); Serial.println(cmdG);
+        // Serial.print("cmdG : "); Serial.println(cmdG);
         write_PWMG(cmdG);   
         write_PWMD(cmdD);
         

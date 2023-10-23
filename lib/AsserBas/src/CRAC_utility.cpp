@@ -235,7 +235,7 @@ int32_t lireCodeurD(void)
 {
     static int32_t val = 0;
     val += EncoderDroite.readAndReset();
-    return COEF_ROUE_DROITE * (val/10);
+    return COEF_ROUE_DROITE * (val);
 }
 /****************************************************************************************/
 /* NOM : lectureErreur                                                                  */
@@ -261,7 +261,7 @@ int32_t lireCodeurG(void)
 {
     static int32_t val = 0;
     val += EncoderGauche.readAndReset();
-    return COEF_ROUE_GAUCHE * (val/10);
+    return COEF_ROUE_GAUCHE * (val);
 }
 /****************************************************************************************/
 /* NOM : write_PWMD                                                                     */
@@ -375,14 +375,14 @@ void Moteur_G_INB_Write(bool set)
 }
 void PWM_D_WriteCompare(double vitD)
 {
-    int vit = (int)(vitD * 256. / 2048);
+    int vit = (int)(vitD * 256. / 2000.);
     // Serial.print("vitD : "); Serial.println(vitD);
     analogWrite(PWM_MOTD, vit);
 }
 void PWM_G_WriteCompare(double vitG)
 {
-    int vit = (int)(vitG * 256. / 2048);
-    Serial.print("vitG : "); Serial.println(vitG);
+    int vit = (int)(vitG * 256. / 2000.);
+    // Serial.print("vitG : "); Serial.println(vitG);
     analogWrite(PWM_MOTG, vit);
 }
 /* [] END OF FILE */

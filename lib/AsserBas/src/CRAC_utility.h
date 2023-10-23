@@ -48,7 +48,7 @@
     
 #define MOTDPIN 
 #define FACTEUR_DIVISION    1
-#define RESOLUTION_ROUE_CODEUSE 1024        
+#define RESOLUTION_ROUE_CODEUSE 9300.//1024        
 #define RECALAGE_TH 150     //150    -- 1000    -- 512
 #define EXPLOSION_TAUX 2500
     
@@ -90,7 +90,7 @@
 #define LIGNE_DROITE_X_Y_THETA 2
 #define ROTATION_X_Y_THETA_2 3
 
-#define VIT_MAX 1740//1740 normalement
+#define VIT_MAX 500//1740 normalement
 /****************************************************************************************/
 /*                         Definition des informations du robot                         */
 /****************************************************************************************/ 
@@ -99,9 +99,9 @@
 #define COEF_ROUE_GAUCHE  1 //1.00595 - 0.9992505621    Petit virage à droite à gauche  ancien : 1.0100 / 1.0055
 #define COEF_ROUE_DROITE -1 //BLANC
 #define TE_100US 25          //Temps d'echantionnage -> 25 x 100US = 2.5ms
-#define Vmax_coef 200.0           //  600       DANGER>>>>>>> chauffage micro
-#define Amax_coef 2000.0          // 6000       DANGER>>>>>>> chauffage micro
-#define Dmax_coef 2000.0          // 6000       DANGER>>>>>>> chauffage micro
+#define Vmax_coef 600.0           //  600       DANGER>>>>>>> chauffage micro
+#define Amax_coef 10000.0          // 6000       DANGER>>>>>>> chauffage micro
+#define Dmax_coef 10000.0          // 6000       DANGER>>>>>>> chauffage micro
 #define Ama_clo_coef 1500.0
 #define TE (TE_100US*0.0001) //soit 2.5ms
 void Encodeur_Init();
