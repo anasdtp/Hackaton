@@ -198,4 +198,10 @@
 #define IDCAN_POS_XY_OBJET 0x82
 #define ERREUR_TEMP_CALCUL_LIDAR 0x86
     
+
+// Hackaton : 
+
+#define SERVOMOTEUR_9G 0x98
+#define SERVOMOTEUR_PINCE 0x99
+
 #endif

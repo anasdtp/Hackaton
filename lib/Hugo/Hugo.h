@@ -1,6 +1,4 @@
 #include <Arduino.h>
-#include <RPLidar.h>
-#include <Servo.h>
 #include <AX12A.h>
 
 #define DirectionPin  (10u)
@@ -51,12 +49,18 @@
 
 //Lidar 
 
-#define DistanceMin 150. //Distance minimale prise en compte par le lidar, en cm
-#define DistanceMax 450.
+#define DistanceMin 120. //Distance minimale prise en compte par le lidar, en cm
+#define DistanceMax 550.
+
+extern AX12A Pince;
 
 void Hugo_setup();
 
+void PINCE(bool relacher = false);
+
 void Hugo_loop();
+
+void lidar_loop();
 
 bool lidarStatus();
 

@@ -7,6 +7,7 @@
 
 ISR(TIMER1_COMPA_vect) {
   mscount++; // Incrémente le compteur de millisecondes à chaque interruption
+  mscount_lidar++;
 }
 
 void init_Timer() {

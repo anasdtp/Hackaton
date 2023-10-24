@@ -1,7 +1,9 @@
 #include <Hugo.h>
-
+#include <RPLidar.h>
+#include <Servo.h>
+#include <AX12A.h>
 RPLidar lidar;
-Servo servo;
+// Servo drapeau;
 
 
 // AVANT DE LANCER LE ROBOT:
@@ -29,15 +31,7 @@ Servo servo;
 //----------------------- STRATEGIE -------------------------
 #define SIZE_ACTION 17
 
-const int debug_flag_asservissement = 1;
 
-typedef struct Etape
-{
-  /* data */
-  int ACTION;
-}Etape;
-
-Etape strat[SIZE_ACTION];
 
 // Chelou : 
 //POSITIONS A ATTEINDRE EN (x,y) -->>> A EDITER POUR LA STRATEGIE FINALE
@@ -97,17 +91,29 @@ int n;                    //Compteur pour le Lidar
 int detection;
 
 
-
+AX12A Pince;
 void Hugo_setup(){
     //pelle
-  ax12a.begin(BaudRate, DirectionPin, &Serial3);
-  ax12a.moveSpeed(ID, ANGLE_INITIAL_PELLE, 1000);
+  Pince.begin(BaudRate, DirectionPin, &Serial3);
+  PINCE();
 
   //drapeau
-  servo.attach(PIN_SERVO_DRAPEAU);
-  servo.write(ANGLE_INITIAL_DRAPEAU);
+  // drapeau.attach(PIN_SERVO_DRAPEAU);
+  // drapeau.write(ANGLE_INITIAL_DRAPEAU);
   lidar.begin(Serial2);                           //utiliser TX2 et RX2 pour le Lidar
   pinMode(RPLIDAR_MOTOR, OUTPUT);
+  analogWrite(RPLIDAR_MOTOR, 255);
+  delay(100);
+  lidar.startScan();
+}
+
+void PINCE(bool relacher){
+  if(relacher){
+    Pince.moveSpeed(ID, ANGLE_FINAL_PELLE, 1000);
+  }else{
+    Pince.moveSpeed(ID, ANGLE_INITIAL_PELLE, 1000);
+  }
+  delayMicroseconds(100);
 
 }
 
@@ -117,76 +123,22 @@ void Hugo_loop(){
     }
 }
 
-
-bool lidarStatus(){
+bool DANGER = false;
+void lidar_loop(){
   if (IS_OK(lidar.waitPoint())) {
   float distance = lidar.getCurrentPoint().distance; //distance value in mm unit
   float angle    = lidar.getCurrentPoint().angle; //anglue value in degree
   
-  if(distance>DistanceMin && distance<DistanceMax && (angle>360-25 || angle<25)){ detection+=1;}
+  if(distance>DistanceMin && distance<DistanceMax && (angle>180-25 && angle<180+25)){ detection+=1;}
 
   n+=1;
-  if (n>1500){ n=0; detection=0;}
-  if (detection>10){return true;} else {return false;}
+  if (n>1500){ n=0; detection=0; DANGER = false;}
+  if (detection>10){DANGER = true;}
   }
+  else{DANGER = false;}
+
 }
 
-
-void strat_loop() {
-  switch (strat[etape_actuelle].ACTION)
-  {
-  case ATTEINDRE_POSITION_1:
-    //moveTo(POS_1);
-    break;
-  case ATTEINDRE_POSITION_2:
-    //moveTo(POS_2);
-    break;
-  case ATTEINDRE_POSITION_3:
-    //moveTo(POS_3);
-    break;
-  case ATTEINDRE_POSITION_4:
-    //moveTo(POS_4);
-    break;
-  case ATTEINDRE_POSITION_5:
-    //moveTo(POS_5);
-    break;
-  case ATTEINDRE_POSITION_6:
-    //moveTo(POS_6);
-    break;
-  case TOUCHER_PLANTES:
-    //moveToPlants();
-    break;
-  case RECUPERER_PLANTES:
-    //closeShovelWhileMoving();
-    break;
-  case AMENER_PLANTES_A_LA_DEPOSE:
-    //moveTo(POS_DEPOSE);
-    break;
-  case LACHER_PLANTES:
-    //openShovel();
-    break;
-  case RECULER:
-    //StraightLine(RECUL_APRES_PLANTES);
-    break;
-  case LEVER_DRAPEAU:
-    //raiseFlag();
-    break;
-  case ALLER_DEVANT_POT:
-    //moveTo(POS_POT);
-    break;
-  case PRENDRE_POT:
-    //grabPot();
-    break;
-  case ATTEINDRE_ZONE_PAMI:
-    //moveTo(POS_PAMI);
-    break;
-  case POSER_POT:
-    //releasePot();
-  case ATTEINDRE_ZONE_FINALE:
-    //StraightLine(RECUL_APRES_POT);
-    //moveTo(POS_FINALE);
-    break;
-  default:
-    break;
-  }
+bool lidarStatus(){
+  return DANGER;
 }

@@ -191,7 +191,7 @@ extern double PERIMETRE_ROUE_CODEUSE, LARGEUR_ROBOT;
 extern double DTIC;   
 extern double LARGEUR_ROBOT_TIC;                     // Valeurs des correcteurs d'asservissement pour les 2 moteurs
 extern unsigned char tC1, tC2, tC3, tC4, tC5, nbexpr;
-extern volatile uint16_t mscount , mscount1 ,  mscount2;
+extern volatile uint16_t mscount , mscount1 ,  mscount2, mscount_lidar;
     
 extern buf_circ_t buffer_distanceG;
 extern buf_circ_t buffer_distanceD;
