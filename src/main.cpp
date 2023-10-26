@@ -1029,17 +1029,15 @@ void remplirStructStrat(){
             strategie_hackaton[act].sens = tab_action_brut[act][ARG4];
 
             if(COULEUR_STRAT == JAUNE){
-                strategie_hackaton[act].x     = x;
-                strategie_hackaton[act].y     = 3000 - y;
-                strategie_hackaton[act].theta = 1800 - theta;
-                if      (strategie_hackaton[act].theta > 1800){strategie_hackaton[act].theta -= 3600;} 
-                else if (strategie_hackaton[act].theta <-1800){strategie_hackaton[act].theta += 3600;}
+                x     = x;
+                y     = 3000 - y;
+                theta = - theta;
+                
             }
-            else{
-                strategie_hackaton[act].x     = x;
-                strategie_hackaton[act].y     = y;
-                strategie_hackaton[act].theta = theta; 
-            }
+
+            strategie_hackaton[act].x     = x;
+            strategie_hackaton[act].y     = y;
+            strategie_hackaton[act].theta = theta; 
 
             Serial.print (ASSERVISSEMENT_XYT); Serial.print (" - ");
             Serial.print(strategie_hackaton[act].x); Serial.print(" "); 
@@ -1057,14 +1055,17 @@ void remplirStructStrat(){
             strategie_hackaton[act].val_recalage = tab_action_brut[act][ARG3];//Bas droit sur l'assiette bleu, de base
             //Puis
             //bas Gauche sur l'assiette jaune 
-            if((RECALAGE_DEPART == EN_BAS_A_GAUCHE) && strategie_hackaton[act].mode <0){//Aussi si on se recale sur l'axe y
+            if((RECALAGE_DEPART == EN_BAS_A_GAUCHE) && tab_action_brut[act][ARG2] <0){//Aussi si on se recale sur l'axe y
                 strategie_hackaton[act].val_recalage = 3000 - tab_action_brut[act][ARG3];
             }
             //Ajouter les cas en haut à droite et en haut à gauche
             
             
 
-            Serial.print (ASSERVISSEMENT_RECALAGE); Serial.print (" - "); Serial.println (strategie_hackaton[act].distance);
+            Serial.print (ASSERVISSEMENT_RECALAGE); Serial.print (" - "); 
+            Serial.print (strategie_hackaton[act].distance); Serial.print (" - "); 
+            Serial.print (strategie_hackaton[act].mode); Serial.print (" - "); 
+            Serial.println (strategie_hackaton[act].val_recalage);
         }
         break;
         case 'A'://Action servo
