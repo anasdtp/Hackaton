@@ -13,7 +13,7 @@ extern short           etat_automate, etat_automate_depl, new_message,
 void Mouvement_Elementaire(long pcons, short vmax, short amax, short dmax, char mvt);
 void Rayon_De_Courbure(short rayon, short theta, short vmax, short amax, short sens, short dmax);
 void X_Y_Theta(long px, long py, long ptheta, long sens, short vmax, short amax);
-void Recalage(int pcons, short vmax, short amax, short dir, short nv_val);
+void Recalage(long pcons, short vmax, short amax, short dir, short nv_val);
 
 void init_coef();
 

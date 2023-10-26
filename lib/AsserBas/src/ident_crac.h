@@ -203,5 +203,6 @@
 
 #define SERVOMOTEUR_9G 0x98
 #define SERVOMOTEUR_PINCE 0x99
+#define WAIT_FOR_JACK 0x199
 
 #endif

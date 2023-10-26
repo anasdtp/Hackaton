@@ -176,6 +176,8 @@ extern short    etat_automate, etat_automate_depl, new_message,
                 xytheta_sens, next_move_xyt, next_move, i, stop, stop_receive, param_xytheta[3],
                 etat_automate_xytheta, ralentare;
               
+extern unsigned short target_x,target_y,target_theta; extern signed char target_sens;
+
 extern unsigned short cpt;
                 
 extern int cpt_ordre;

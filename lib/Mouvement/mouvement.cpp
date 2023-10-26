@@ -751,7 +751,7 @@ void X_Y_Theta(long px, long py, long ptheta, long sens, short vmax, short amax)
               l'augmentation d'erreur sur les 2 roues, ça veut dire qu'on a fini      
               de se recaler sur l'obstacle                                            
 ***************************************************************************************/
-void Recalage(int pcons, short vmax, short amax, short dir, short nv_val)//fait
+void Recalage(long pcons, short vmax, short amax, short dir, short nv_val)//fait
 {
     vmax = 5; //15
     amax = 5; //75
@@ -765,6 +765,7 @@ void Recalage(int pcons, short vmax, short amax, short dir, short nv_val)//fait
                 etat_automate_depl = ACCELERATION_RECALAGE;     //Passage a l'etat ACCELERATION_RECALAGE
                 consigne_pos = 0;   //Initialisation des differentes variables
                 cpt = 0;
+                Serial.println("INIT_RECALAGE");
                 break;
              
             case ACCELERATION_RECALAGE :    //etat ACCELERATION_RECALAGE
@@ -811,6 +812,7 @@ void Recalage(int pcons, short vmax, short amax, short dir, short nv_val)//fait
                 break;
                 
             case FIN_RECALAGE :     //etat FIN_RECALAGE
+                Serial.println("FIN_RECALAGE");
                 // Fin du recalage, on met à jour les données de position
                 if(cpt >=20)
                 {
@@ -884,6 +886,7 @@ void Recalage(int pcons, short vmax, short amax, short dir, short nv_val)//fait
                 etat_automate_depl = ACCELERATION_RECALAGE;     //Passage a l'etat ACCELERATION_RECALAGE
                 consigne_pos = 0;   //Initialisation des différentes variables
                 cpt = 0;
+                Serial.println("INIT_RECALAGE");
                 break;
             
             case ACCELERATION_RECALAGE :    //etat ACCELERATION_RECALAGE
@@ -922,6 +925,7 @@ void Recalage(int pcons, short vmax, short amax, short dir, short nv_val)//fait
                 break;
                 
             case FIN_RECALAGE :     //etat FIN_RECALAGE
+                Serial.println("FIN_RECALAGE");
                 if(cpt >=20)
                 {
                     //Recalage de x

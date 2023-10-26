@@ -2,6 +2,7 @@
 #include <RPLidar.h>
 #include <Servo.h>
 #include <AX12A.h>
+#include <CRAC_utility.h>
 RPLidar lidar;
 // Servo drapeau;
 
@@ -109,13 +110,12 @@ void Hugo_setup(){
 
 void PINCE(bool relacher){
   if(relacher){
-    Pince.moveSpeed(ID, ANGLE_FINAL_PELLE, 1000);
+    Pince.moveSpeed(ID, ANGLE_FINAL_PELLE, 800);
   }else{
-    Pince.moveSpeed(ID, ANGLE_INITIAL_PELLE, 1000);
+    Pince.moveSpeed(ID, ANGLE_INITIAL_PELLE, 800);
   }
-  delayMicroseconds(100);
-
 }
+
 
 void Hugo_loop(){
     if (detection==true){
@@ -129,7 +129,14 @@ void lidar_loop(){
   float distance = lidar.getCurrentPoint().distance; //distance value in mm unit
   float angle    = lidar.getCurrentPoint().angle; //anglue value in degree
   
-  if(distance>DistanceMin && distance<DistanceMax && (angle>180-25 && angle<180+25)){ detection+=1;}
+  bool condition_sens = false;
+  if(target_sens>=0){
+    condition_sens = (angle>=180-25 && angle<=180+25);
+  }else{
+    condition_sens = (angle>=360-25 && angle<=25);
+  }
+
+  if(distance>DistanceMin && distance<DistanceMax && condition_sens){ detection+=1;}
 
   n+=1;
   if (n>1500){ n=0; detection=0; DANGER = false;}

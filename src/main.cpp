@@ -7,16 +7,19 @@
 #include <moteur.h>
 #include <Hugo.h>
 
-#define SIZE_ACTION 4       +1
-#define ETAT_GAME_MVT_DANGER 0xF1
-#define ETAT_GAME_PAS_DANGER 0xF2
+#define PIN_JACK 5
+bool WaitForJack = false;
+
+#define COULEUR_STRAT "BLEU" //Ou JAUNE, de base il faut faire la strat comme si on etait en bleu et sa s'inverse tout seul (en cours...)
+#define SIZE_ACTION 6 + 1 + 20       +1 //Depart + Jack + jeu   +1 fin de match
+#define ETAT_GAME_MVT_DANGER 0x01
+#define ETAT_GAME_PAS_DANGER 0x02
+
 typedef struct Etape
 {
   /* data */
   int ACTION;
-  char type_Evitement; //Mouvement ETAT_GAME_MVT_DANGER evitement sinon non 
   int variable;
-
   uint16_t x,y,theta; signed char sens;//Asservissement XYT
 
   int16_t angle; //rotation
@@ -28,8 +31,12 @@ typedef struct Etape
 
 Etape strategie_hackaton[SIZE_ACTION];
 bool next_action = true;
+//Lidar : -----------------------------------------------------------------------------
+char type_Evitement = ETAT_GAME_PAS_DANGER; //Mouvement ETAT_GAME_MVT_DANGER evitement sinon non 
 unsigned short target_x,target_y,target_theta;signed char target_sens;//Pour aller là où on devait aller apres que le robot soit passé
+//Fin init var Lidar ------------------------------------------------------------------
 
+//Construction liste strategie : ------------------------------------------------------
 // int16_t tab_action_brut[SIZE_ACTION][5]={
 //     {'L', 500,0,0,0},
 //     {'R', 900,0,0,0},
@@ -37,20 +44,60 @@ unsigned short target_x,target_y,target_theta;signed char target_sens;//Pour all
 //     {'X', 450,450,0,0}
 // };
 /* [TYPE] [ARG1] [ARG2] [ARG3] [ARG4]*/
-/*  X : XYT [x];[y];[t];
+/*  J : Jack ;;; Wait for jack
+    X : XYT [x];[y];[t];
     L : Ligne droite [d];;;
     R : Rotation [a];;;
     O : Recalage [d];[x ou y?] si x mettre 1, si y -1 ;;
 
     A : Action [Type] si Type à 1 c'est servomoteur 9G, 2 Servo pince ; [Position servo] 0 : retracter, 1 : Lacher ;;
 */
+    // {'O', 1000,1,0,0},
+    // {'L', -100,0,0,0},
+    // {'R', 900,0,0,0},
+    // {'O', 1000,-1,0,0},
+    // {'L', -100,0,0,0},
+    // {'X', 250,250,900,0},
 int16_t tab_action_brut[SIZE_ACTION][5]={
-    
-    {'X', 900,800,450,0},
-    {'X', 1000,1500,900,0},
-    {'L', 1000,0,0,0},
-    {'A', 2,1,0,0}
+    //Phase d'initialisation (pendant les 3 min) :
+    {'O', 1000,1,0,0},
+    {'L', -100,0,0,0},
+    {'R', 900,0,0,0},
+    {'O', 1000,-1,0,0},
+    {'L', -100,0,0,0},
+    {'X', 250,250,900,0},
+
+    {'J', 0,0,0,0},//Attente du jack
+    //Debut du match :
+    {'X', 700,780,900,0},
+    {'L', 150,0,0,0},
+    {'A', 2,1,0,0},
+    {'L', 50,0,0,0},
+
+    {'X', 2000-300,350,-900,0},
+    {'A', 2,0,0,0},
+    {'L', 50,0,0,0},
+    {'L', -200,0,0,0},
+
+    {'X', 2000 - 700,780,900,0},
+    {'L', 150,0,0,0},
+    {'A', 2,1,0,0},
+    {'L', 50,0,0,0},
+
+    {'X', 300,350, -900,0},
+    {'A', 2,0,0,0},
+    {'L', 50,0,0,0},
+
+    {'L', -300,0,0,0},
+    {'R', -900,0,0,0},
+    {'O', 1000,1,0,0},
+    {'L', -150,0,0,0},
+
+    {'X', 2000-250,450,0,-1},
+
+    {'0', 0,0,0,0}//Fin de match
 };
+//Fin Construction liste strategie : --------------------------------------------------
 //----------------------------------------------------------------------Variables
 volatile uint16_t          mscount = 0,      // Compteur utilisé pour envoyer échantillonner les positions et faire l'asservissement
                            mscount1 = 0,     // Compteur utilisé pour envoyer échantillonner les positions et faire l'asservissement
@@ -61,7 +108,7 @@ extern double Odo_val_pos_D, Odo_val_pos_G, Odo_last_val_pos_D, Odo_last_val_pos
 
 int nbValeurs = 0;
 
-double Kp =1.5  , Ki =0.05, Kd =0.1;//double Kp =8    , Ki =0.4, Kd =10.0;
+double Kp =2. , Ki =0.005, Kd =0.1;//double Kp =8    , Ki =0.4, Kd =10.0;
                 
 unsigned short cpt = 0; int cpt_ordre = 0; //Va savoir à quoi ça sert        
 
@@ -88,6 +135,7 @@ void calcul(void);
 void CANloop();
 void Odometrie(void);
 void remplirStructStrat();
+bool jack();
 void setup() {
   Serial.begin(115200);
     init_coef();
@@ -296,6 +344,7 @@ void calcul(void){//fait!!
             if (finRayonCourbure){
                 liste.type = (TYPE_MOUVEMENT_SUIVANT);
                 finRayonCourbure = 0;
+                next_action = true;
                 //remplirStruct(DATArobot,INSTRUCTION_END_MOTEUR, 2, (Message_Fin_Mouvement&0xFF), ((Message_Fin_Mouvement>>8)&0xFF),0,0,0,0,0,0);
                 //writeStructInCAN(DATArobot);
             }
@@ -394,6 +443,7 @@ void calcul(void){//fait!!
             if (finRecalage){
                 liste.type = (TYPE_MOUVEMENT_SUIVANT);
                 finRecalage = 0;
+                next_action = true;
                 //remplirStruct(DATArobot,INSTRUCTION_END_MOTEUR, 2, ASSERVISSEMENT_RECALAGE, 0,0,0,0,0,0,0);
                 //writeStructInCAN(DATArobot);
             }
@@ -595,26 +645,37 @@ void calcul(void){//fait!!
 ***************************************************************************************/
 
 void CANloop(){
-    static signed char FIFO_lecture=0,FIFO_occupation=0,FIFO_max_occupation=0, etat_evitement = 0;
+    static int FIFO_lecture=0,FIFO_occupation=0,FIFO_max_occupation=0, etat_evitement = 0;
+
+    if(WaitForJack){
+        if(jack()){
+            Serial.println("Game start");
+            WaitForJack = false;
+            next_action = true;
+            // FIFO_lecture++;
+        }
+        else{
+            return;
+        }
+    }
 
     FIFO_occupation=SIZE_ACTION-FIFO_lecture;
     if(FIFO_occupation<0){FIFO_occupation=FIFO_occupation+SIZE_ACTION;}
     if(FIFO_max_occupation<FIFO_occupation){FIFO_max_occupation=FIFO_occupation;}//Ajouter des conditions : attendre que l'action est été faite
 
     
+
     lidar_loop();
 
     switch (etat_evitement)
     {
     case 0:{
-        if(lidarStatus()){//Alors s'arreter
+        if(lidarStatus()  && (type_Evitement != ETAT_GAME_PAS_DANGER)){//Alors s'arreter)   
             Serial.println("Lidar detection");
             stop_receive = 1; //Arret brutal
             etat_evitement = 1;
             mscount_lidar = 0;
             return;
-        }else{
-            Serial.println("Pas de detection");
         }
     }
         break;
@@ -626,7 +687,7 @@ void CANloop(){
     }
         break;
     case 2:{
-        if(lidarStatus() && strategie_hackaton[FIFO_lecture-1].type_Evitement == ETAT_GAME_MVT_DANGER){//Alors s'arreter
+        if(lidarStatus()){//Alors s'arreter
             stop_receive = 1; //Arret brutal
             etat_evitement = 1;
             mscount_lidar = 0;
@@ -649,6 +710,7 @@ void CANloop(){
                     liste.type = TYPE_DEPLACEMENT_X_Y_THETA;
                     liste.vmax = VMAX;
                     liste.amax = AMAX;   
+                    type_Evitement = ETAT_GAME_MVT_DANGER;
                     return;    
         }
     }
@@ -657,9 +719,10 @@ void CANloop(){
         break;
     }
 
-
+    
     if(!next_action){return;}
     next_action = false;
+    Serial.print(FIFO_lecture);  Serial.print(" - Action : ");  Serial.print(strategie_hackaton[FIFO_lecture].ACTION); 
    //if(canAvailable || BtAvailable){
     // if(canAvailable){canReadExtRtr();}//On le me ici pour ne pas surcharger l'interruption CAN.onRecveive
     // canAvailable = false; BtAvailable = false;
@@ -667,6 +730,9 @@ void CANloop(){
     if(!FIFO_occupation){return;}
     switch (strategie_hackaton[FIFO_lecture].ACTION)
     {
+            case WAIT_FOR_JACK :
+                WaitForJack = true;
+            break;
 
             case ASSERVISSEMENT_ENABLE :
                 asser_actif = strategie_hackaton[FIFO_lecture].variable; //Si 1 actif sinon pas
@@ -701,6 +767,7 @@ void CANloop(){
                     target_y       =  strategie_hackaton[FIFO_lecture].y;
                     target_theta   =  strategie_hackaton[FIFO_lecture].theta;
                     target_sens    =  strategie_hackaton[FIFO_lecture].sens;
+                    type_Evitement = ETAT_GAME_MVT_DANGER;
             }
             break;
         
@@ -724,6 +791,7 @@ void CANloop(){
                 target_y       = (uint16_t)Odo_y;
                 target_theta   = (int16_t)Odo_theta + angle;
                 target_sens    = 0;
+                type_Evitement = ETAT_GAME_PAS_DANGER;
 
             }
             break;  
@@ -738,12 +806,14 @@ void CANloop(){
                 target_x       = (uint16_t)Odo_x;
                 target_y       = (uint16_t)Odo_y;
                 target_theta   = (int16_t)Odo_theta;
-                target_sens    = 0;
+                target_sens    = (distance >=0 ? -1 : 1);
+                type_Evitement = ETAT_GAME_PAS_DANGER;
                  
-        
+                Serial.println("ASSERVISSEMENT_RECALAGE");
                 //Recalage
                 if (mode)
                 {
+                    Serial.println("Recalage en cours ...");
                     liste = (struct Ordre_deplacement){TYPE_DEPLACEMENT_IMMOBILE,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
                     nb_ordres = 0;
                     cpt_ordre = 0;
@@ -772,7 +842,7 @@ void CANloop(){
                     target_y       = (uint16_t)Odo_y + distance * sin(Odo_theta * M_PI / 1800.0);
                     target_theta   = (uint16_t)Odo_theta;
                     target_sens    = (distance >=0 ? 1 : -1);
-                    
+                    type_Evitement = ETAT_GAME_MVT_DANGER;
                 }
             }
             break;
@@ -789,6 +859,7 @@ void CANloop(){
             {
                  // `#START MESSAGE_End_Game_RECEIVED` 
                 Fin_Match = 1;
+                type_Evitement = ETAT_GAME_PAS_DANGER;
             }
             break;
             case ASSERVISSEMENT_STOP:
@@ -807,34 +878,22 @@ void CANloop(){
             case SERVOMOTEUR_9G:{
 
             }break;
+
             case SERVOMOTEUR_PINCE:{
                 bool pos_servo = (strategie_hackaton[FIFO_lecture].position_servo == 1 ? true : false);
                 PINCE(pos_servo);
                 next_action = true;
+                type_Evitement = ETAT_GAME_PAS_DANGER;
             }break;
-//---------------------------------------------
             
             default :
             break;
     }
-    
-    
-    // Send message to master via bleutooth
-    // if (connected){
-    //   prxRemoteCharacteristic->writeValue((uint8_t *)&strategie_hackaton[FIFO_lecture], sizeof(strategie_hackaton[FIFO_lecture]));
-    //   //Serial.println("Sending via BT...");
-    // } else{//Serial.println("The device is not connected");}
-//   }
-  //if new CAN by BT are available, write it in CAN bus / CAN <-> Bt <-> CAN and use it to control the Robot
-//   if (newCan){
-//     newCan = false;
-//     writeStructInCAN(strategie_hackaton[FIFO_lecture]); 
-//     ////Serial.println(strategie_hackaton[FIFO_lecture].ID);
-//     BtAvailable = true;
-//   }
-    FIFO_lecture=(FIFO_lecture+1)%SIZE_ACTION;
-  
-}
+    FIFO_lecture ++;
+    // FIFO_lecture %= SIZE_ACTION;
+    // FIFO_lecture=(FIFO_lecture+1)%SIZE_ACTION;
+    Serial.println(FIFO_lecture);
+}   
 
 //*/
 /***************************************************************************************
@@ -911,42 +970,50 @@ void Odometrie(void)//fait
 #define ARG3 3
 #define ARG4 4
 void remplirStructStrat(){
-    Serial.println ("remplirStructStrat");
+    Serial.println ("remplirStructStrat... ***********************************");
     for(int act = 0; act< SIZE_ACTION; act++){
         switch (tab_action_brut[act][TYPE])
         {
+        case 'J'://Jack
+        {
+            Serial.print (act); Serial.print (" - Jack ");
+            //mettre WaitForJack a true
+            strategie_hackaton[act].ACTION = WAIT_FOR_JACK;
+            Serial.println (WAIT_FOR_JACK);
+        }
+        break;
         case 'L'://Ligne droite
         {
-            Serial.print ("Ligne droite  ");
+            Serial.print (act); Serial.print (" - Ligne droite  ");
             strategie_hackaton[act].ACTION = ASSERVISSEMENT_RECALAGE;
             strategie_hackaton[act].distance = tab_action_brut[act][ARG1];
             strategie_hackaton[act].mode = 0;
 
-            strategie_hackaton[act].type_Evitement = ETAT_GAME_MVT_DANGER;
-            Serial.println (strategie_hackaton[act].distance);
+            
+            Serial.print (ASSERVISSEMENT_RECALAGE); Serial.print (" - "); Serial.println (strategie_hackaton[act].distance);
         }
             break;
         case 'R'://rotation
         {
-            Serial.print ("rotation  ");
+            Serial.print (act); Serial.print (" - rotation  ");
             strategie_hackaton[act].ACTION = ASSERVISSEMENT_ROTATION;
             strategie_hackaton[act].angle = tab_action_brut[act][ARG1];
             strategie_hackaton[act].mode = 0;
 
-            strategie_hackaton[act].type_Evitement = ETAT_GAME_PAS_DANGER;
-            Serial.println (strategie_hackaton[act].angle);
+            Serial.print (ASSERVISSEMENT_ROTATION); Serial.print (" - "); Serial.println (strategie_hackaton[act].angle);
         }
             break;
         case 'X'://XYT
         {
-            Serial.print ("XYT  ");
+            Serial.print (act); Serial.print (" - XYT  ");
             strategie_hackaton[act].ACTION = ASSERVISSEMENT_XYT;
             strategie_hackaton[act].x = tab_action_brut[act][ARG1];
             strategie_hackaton[act].y = tab_action_brut[act][ARG2];
             strategie_hackaton[act].theta = tab_action_brut[act][ARG3];
             strategie_hackaton[act].sens = tab_action_brut[act][ARG4];
 
-            strategie_hackaton[act].type_Evitement = ETAT_GAME_MVT_DANGER;
+
+            Serial.print (ASSERVISSEMENT_XYT); Serial.print (" - ");
             Serial.print(strategie_hackaton[act].x); Serial.print(" "); 
             Serial.print(strategie_hackaton[act].y); Serial.print(" "); 
             Serial.println(strategie_hackaton[act].theta);
@@ -954,33 +1021,33 @@ void remplirStructStrat(){
             break;
         case 'O'://Recalage
         {
-            Serial.print ("Recalage  ");
+            Serial.print (act);  Serial.print (" - Recalage  ");
             strategie_hackaton[act].ACTION = ASSERVISSEMENT_RECALAGE;
             strategie_hackaton[act].distance = tab_action_brut[act][ARG1];
             strategie_hackaton[act].mode = tab_action_brut[act][ARG2];
 
-            strategie_hackaton[act].type_Evitement = ETAT_GAME_PAS_DANGER;
-            Serial.println (strategie_hackaton[act].distance);
+            Serial.print (ASSERVISSEMENT_RECALAGE); Serial.print (" - "); Serial.println (strategie_hackaton[act].distance);
         }
+        break;
         case 'A'://Action servo
         {
-            Serial.print ("Action servo  ");
+            Serial.print (act); Serial.print (" - Action servo  ");
+            int ACTION = SERVOMOTEUR_9G;
             if(tab_action_brut[act][ARG1]== 2){
-                strategie_hackaton[act].ACTION = SERVOMOTEUR_PINCE;
+                ACTION = SERVOMOTEUR_PINCE;
             }
-            else{strategie_hackaton[act].ACTION = SERVOMOTEUR_9G;}
 
+            strategie_hackaton[act].ACTION = ACTION;
             strategie_hackaton[act].position_servo = tab_action_brut[act][ARG2];
 
-            strategie_hackaton[act].type_Evitement = ETAT_GAME_PAS_DANGER;
-            Serial.println (strategie_hackaton[act].ACTION);
+            Serial.print (ACTION); Serial.print (" - "); Serial.println (strategie_hackaton[act].position_servo);
         }
             break;
         default:
             break;
         }
     }
-
+    Serial.println ("*************************************************");
 }
 
 
@@ -1043,4 +1110,9 @@ void test_accel(void)//fonctionne
         
         break;
     }
+}
+
+
+bool jack(){
+    return(!digitalRead(PIN_JACK));
 }
