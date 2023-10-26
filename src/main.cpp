@@ -18,6 +18,7 @@ bool WaitForJack = false;
 //On ne peut pas partir d'en HAUT (pour le moment...); EN BAS c'est coté mat
 
 #define RECALAGE_DEPART EN_BAS_A_GAUCHE //Donc en zone JAUNE
+#define MOITIEE_ROBOT 94
 
 //Phase de jeu : 
 //Pour la phase du match choisir une couleur, couleur de base BLEU, mettre les coordonnées comme si on etait en BLEU meme si on est JAUNE
@@ -38,7 +39,7 @@ typedef struct Etape
 
   int16_t angle; //rotation
 
-  int16_t distance; uint8_t mode; //Ligne droite ou recalage, Si mode<0 recalage sur y sinon sur x. Si mode = 0 alors ligne droite
+  int16_t distance; uint8_t mode; int16_t val_recalage = MOITIEE_ROBOT; //Ligne droite ou recalage, Si mode<0 recalage sur y sinon sur x. Si mode = 0 alors ligne droite
 
   int16_t position_servo; //Si à 1 relacher sinon lever
 }Etape;
@@ -51,33 +52,24 @@ unsigned short target_x,target_y,target_theta;signed char target_sens;//Pour all
 //Fin init var Lidar ------------------------------------------------------------------
 
 //Construction liste strategie : ------------------------------------------------------
-// int16_t tab_action_brut[SIZE_ACTION][5]={
-//     {'L', 500,0,0,0},
-//     {'R', 900,0,0,0},
-//     {'L', 500,0,0,0},
-//     {'X', 450,450,0,0}
-// };
+
 /* [TYPE] [ARG1] [ARG2] [ARG3] [ARG4]*/
+
 /*  J : Jack ;;; Wait for jack
     X : XYT [x];[y];[t];
     L : Ligne droite [d];;;
     R : Rotation [a];;;
-    O : Recalage [d];[x ou y?] si x mettre 1, si y -1 ;;
+    O : Recalage [d];[x ou y?]si x mettre 1, si y -1;[Val recalage] valeur que prendra l'encodeur à la fin;
 
     A : Action [Type] si Type à 1 c'est servomoteur 9G, 2 Servo pince ; [Position servo] 0 : retracter, 1 : Lacher ;;
 */
-    // {'O', 1000,1,0,0},
-    // {'L', -100,0,0,0},
-    // {'R', 900,0,0,0},
-    // {'O', 1000,-1,0,0},
-    // {'L', -100,0,0,0},
-    // {'X', 250,250,900,0},
+
 int16_t tab_action_brut[SIZE_ACTION][5]={
     //Phase d'initialisation (pendant les 3 min) :
-    {'O', 1000,1,0,0},//On avance doucement jusqu'a se plaquer contre le mur sur l'axe des x
+    {'O', 1000,1,MOITIEE_ROBOT,0},//On avance doucement jusqu'a se plaquer contre le mur sur l'axe des x
     {'L', -100,0,0,0},//On recule
     {'R', 900,0,0,0},//On tourne
-    {'O', 1000,-1,0,0},//On avance doucement jusqu'a se plaquer contre le mur sur l'axe des y
+    {'O', 1000,-1,MOITIEE_ROBOT,0},//On avance doucement jusqu'a se plaquer contre le mur sur l'axe des y
     {'L', -100,0,0,0},//On recule
 
     {'X', 250,250,900,0},//On part à la position initiale
@@ -106,7 +98,7 @@ int16_t tab_action_brut[SIZE_ACTION][5]={
     {'L', -300,0,0,0},//On a terminer on recule
 
     {'R', -900,0,0,0},//On se tourne face au mur
-    {'O', 1000,1,0,0},//On fait un recalage, car on a forcement perdu de la precision, contre l'axe des x
+    {'O', 1000,1,MOITIEE_ROBOT,0},//On fait un recalage, car on a forcement perdu de la precision, contre l'axe des x
     {'L', -150,0,0,0},//On recule
 
     {'X', 2000-250,300,0,0},//On vas se garer
@@ -820,7 +812,7 @@ void CANloop(){
 
                 int16_t distance = strategie_hackaton[FIFO_lecture].distance;
                 uint8_t mode = strategie_hackaton[FIFO_lecture].mode;
-                int16_t valRecalage = 95;//strategie_hackaton[FIFO_lecture].valRecalage; //Valeur que devra prendre
+                int16_t valRecalage = strategie_hackaton[FIFO_lecture].val_recalage; //Valeur que devra prendre l'encodeur sur l'axe designé
                 
                 target_x       = (uint16_t)Odo_x;
                 target_y       = (uint16_t)Odo_y;
@@ -1061,6 +1053,16 @@ void remplirStructStrat(){
             strategie_hackaton[act].ACTION = ASSERVISSEMENT_RECALAGE;
             strategie_hackaton[act].distance = tab_action_brut[act][ARG1];
             strategie_hackaton[act].mode = tab_action_brut[act][ARG2];
+
+            strategie_hackaton[act].val_recalage = tab_action_brut[act][ARG3];//Bas droit sur l'assiette bleu, de base
+            //Puis
+            //bas Gauche sur l'assiette jaune 
+            if((RECALAGE_DEPART == EN_BAS_A_GAUCHE) && strategie_hackaton[act].mode <0){//Aussi si on se recale sur l'axe y
+                strategie_hackaton[act].val_recalage = 3000 - tab_action_brut[act][ARG3];
+            }
+            //Ajouter les cas en haut à droite et en haut à gauche
+            
+            
 
             Serial.print (ASSERVISSEMENT_RECALAGE); Serial.print (" - "); Serial.println (strategie_hackaton[act].distance);
         }

@@ -129,7 +129,7 @@ void lidar_loop(){
   float distance = lidar.getCurrentPoint().distance; //distance value in mm unit
   float angle    = lidar.getCurrentPoint().angle; //anglue value in degree
   
-  bool condition_sens = = (angle>=180-25 && angle<=180+25);
+  bool condition_sens = (angle>=180-25 && angle<=180+25);
  
   // if(target_sens<0){
   //   condition_sens = (angle>=360-25 && angle<=25); // Si on part en arriere
