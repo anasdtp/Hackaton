@@ -48,6 +48,8 @@
 
 
 //Lidar 
+#define ETAT_GAME_MVT_DANGER 0x01
+#define ETAT_GAME_PAS_DANGER 0x02
 
 #define DistanceMin 120. //Distance minimale prise en compte par le lidar, en cm
 #define DistanceMax 550.

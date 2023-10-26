@@ -10,10 +10,24 @@
 #define PIN_JACK 5
 bool WaitForJack = false;
 
-#define COULEUR_STRAT "BLEU" //Ou JAUNE, de base il faut faire la strat comme si on etait en bleu et sa s'inverse tout seul (en cours...)
 #define SIZE_ACTION 6 + 1 + 20       +1 //Depart + Jack + jeu   +1 fin de match
-#define ETAT_GAME_MVT_DANGER 0x01
-#define ETAT_GAME_PAS_DANGER 0x02
+
+//Phase d'initialisation, de recalage : 
+#define EN_BAS_A_DROITE 0 //L'origine donc x = x y = y theta = theta //Zone Bleu
+#define EN_BAS_A_GAUCHE 1 //donc y = 3000 - y et theta = -theta //Zone JAUNE
+//On ne peut pas partir d'en HAUT (pour le moment...); EN BAS c'est coté mat
+
+#define RECALAGE_DEPART EN_BAS_A_GAUCHE //Donc en zone JAUNE
+
+//Phase de jeu : 
+//Pour la phase du match choisir une couleur, couleur de base BLEU, mettre les coordonnées comme si on etait en BLEU meme si on est JAUNE
+#define BLEU 0
+#define JAUNE 1
+
+#define COULEUR_STRAT JAUNE //Bleu Ou JAUNE, de base il faut faire la strat comme si on etait en bleu et sa s'inverse tout seul
+// IMPORTANT FAIRE LA STRAT EN BLEU
+
+
 
 typedef struct Etape
 {
@@ -60,40 +74,42 @@ unsigned short target_x,target_y,target_theta;signed char target_sens;//Pour all
     // {'X', 250,250,900,0},
 int16_t tab_action_brut[SIZE_ACTION][5]={
     //Phase d'initialisation (pendant les 3 min) :
-    {'O', 1000,1,0,0},
-    {'L', -100,0,0,0},
-    {'R', 900,0,0,0},
-    {'O', 1000,-1,0,0},
-    {'L', -100,0,0,0},
-    {'X', 250,250,900,0},
+    {'O', 1000,1,0,0},//On avance doucement jusqu'a se plaquer contre le mur sur l'axe des x
+    {'L', -100,0,0,0},//On recule
+    {'R', 900,0,0,0},//On tourne
+    {'O', 1000,-1,0,0},//On avance doucement jusqu'a se plaquer contre le mur sur l'axe des y
+    {'L', -100,0,0,0},//On recule
+
+    {'X', 250,250,900,0},//On part à la position initiale
 
     {'J', 0,0,0,0},//Attente du jack
     //Debut du match :
-    {'X', 700,780,900,0},
-    {'L', 150,0,0,0},
-    {'A', 2,1,0,0},
-    {'L', 50,0,0,0},
+    {'X', 700,780,900,0},//On se place devant le premier tas
+    {'L', 150,0,0,0},//On avance face à eux
+    {'A', 2,1,0,0},//On les attrape avec la pince
+    {'L', 50,0,0,0},//On s'avance un peu pour mieux les attraper
 
-    {'X', 2000-300,350,-900,0},
-    {'A', 2,0,0,0},
-    {'L', 50,0,0,0},
-    {'L', -200,0,0,0},
+    {'X', 2000-300,350,-900,0},//On part dans une assiette
+    {'A', 2,0,0,0},//On lache les pots
+    {'L', 50,0,0,0},//On les pousse un peu
+    {'L', -200,0,0,0},//On a terminer on recule
 
-    {'X', 2000 - 700,780,900,0},
-    {'L', 150,0,0,0},
-    {'A', 2,1,0,0},
-    {'L', 50,0,0,0},
+    {'X', 2000 - 700,780,900,0},//On se place devant le second tas
+    {'L', 150,0,0,0},//On avance face à eux
+    {'A', 2,1,0,0},//On les attrape avec la pince
+    {'L', 50,0,0,0},//On s'avance un peu pour mieux les attraper
 
-    {'X', 300,350, -900,0},
-    {'A', 2,0,0,0},
-    {'L', 50,0,0,0},
+    {'X', 300,350, -900,0},//On part dans une assiette
+    {'A', 2,0,0,0},//On lache les pots
+    {'L', 50,0,0,0},//On les pousse un peu
 
-    {'L', -300,0,0,0},
-    {'R', -900,0,0,0},
-    {'O', 1000,1,0,0},
-    {'L', -150,0,0,0},
+    {'L', -300,0,0,0},//On a terminer on recule
 
-    {'X', 2000-250,450,0,-1},
+    {'R', -900,0,0,0},//On se tourne face au mur
+    {'O', 1000,1,0,0},//On fait un recalage, car on a forcement perdu de la precision, contre l'axe des x
+    {'L', -150,0,0,0},//On recule
+
+    {'X', 2000-250,300,0,0},//On vas se garer
 
     {'0', 0,0,0,0}//Fin de match
 };
@@ -645,14 +661,13 @@ void calcul(void){//fait!!
 ***************************************************************************************/
 
 void CANloop(){
-    static int FIFO_lecture=0,FIFO_occupation=0,FIFO_max_occupation=0, etat_evitement = 0;
+    static int FIFO_lecture=0,FIFO_occupation=0,FIFO_max_occupation=0, etat_evitement = 3;
 
-    if(WaitForJack){
+    if(WaitForJack){//On attend alors le debut du match
         if(jack()){
             Serial.println("Game start");
             WaitForJack = false;
             next_action = true;
-            // FIFO_lecture++;
         }
         else{
             return;
@@ -670,7 +685,7 @@ void CANloop(){
     switch (etat_evitement)
     {
     case 0:{
-        if(lidarStatus()  && (type_Evitement != ETAT_GAME_PAS_DANGER)){//Alors s'arreter)   
+        if(lidarStatus()){//Alors s'arreter)   //&& (type_Evitement != ETAT_GAME_PAS_DANGER) //Enlever car bug des fois
             Serial.println("Lidar detection");
             stop_receive = 1; //Arret brutal
             etat_evitement = 1;
@@ -715,6 +730,9 @@ void CANloop(){
         }
     }
         break;
+    case 3 :
+    //Ne rien faire, Lidar desactivé pendant la phase d'initialisation et s'active dés quon tire le Jack
+    break;
     default:
         break;
     }
@@ -730,8 +748,9 @@ void CANloop(){
     if(!FIFO_occupation){return;}
     switch (strategie_hackaton[FIFO_lecture].ACTION)
     {
-            case WAIT_FOR_JACK :
+            case WAIT_FOR_JACK ://Debut du Match dés qu'on tire le Jack
                 WaitForJack = true;
+                etat_evitement = 0;//On active le lidar
             break;
 
             case ASSERVISSEMENT_ENABLE :
@@ -997,8 +1016,12 @@ void remplirStructStrat(){
         {
             Serial.print (act); Serial.print (" - rotation  ");
             strategie_hackaton[act].ACTION = ASSERVISSEMENT_ROTATION;
-            strategie_hackaton[act].angle = tab_action_brut[act][ARG1];
-            strategie_hackaton[act].mode = 0;
+            if(COULEUR_STRAT == JAUNE){//Alors on inverse
+                strategie_hackaton[act].angle = -1 *tab_action_brut[act][ARG1];
+            }
+            else{//Couleur de base BLEU
+                strategie_hackaton[act].angle = tab_action_brut[act][ARG1];
+            }
 
             Serial.print (ASSERVISSEMENT_ROTATION); Serial.print (" - "); Serial.println (strategie_hackaton[act].angle);
         }
@@ -1007,11 +1030,24 @@ void remplirStructStrat(){
         {
             Serial.print (act); Serial.print (" - XYT  ");
             strategie_hackaton[act].ACTION = ASSERVISSEMENT_XYT;
-            strategie_hackaton[act].x = tab_action_brut[act][ARG1];
-            strategie_hackaton[act].y = tab_action_brut[act][ARG2];
-            strategie_hackaton[act].theta = tab_action_brut[act][ARG3];
+            uint16_t x,y,theta;
+            x = tab_action_brut[act][ARG1];
+            y = tab_action_brut[act][ARG2];
+            theta = tab_action_brut[act][ARG3];
             strategie_hackaton[act].sens = tab_action_brut[act][ARG4];
 
+            if(COULEUR_STRAT == JAUNE){
+                strategie_hackaton[act].x     = x;
+                strategie_hackaton[act].y     = 3000 - y;
+                strategie_hackaton[act].theta = 1800 - theta;
+                if      (strategie_hackaton[act].theta > 1800){strategie_hackaton[act].theta -= 3600;} 
+                else if (strategie_hackaton[act].theta <-1800){strategie_hackaton[act].theta += 3600;}
+            }
+            else{
+                strategie_hackaton[act].x     = x;
+                strategie_hackaton[act].y     = y;
+                strategie_hackaton[act].theta = theta; 
+            }
 
             Serial.print (ASSERVISSEMENT_XYT); Serial.print (" - ");
             Serial.print(strategie_hackaton[act].x); Serial.print(" "); 
